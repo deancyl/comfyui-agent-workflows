@@ -125,6 +125,33 @@ images = client.run_generation(
 print(f"生成的成片已下载: {images}")
 ```
 
+### 🧠 智能意图路由与多维 LoRA 矩阵 (Smart Intent Router)
+无需记忆 17 个工作流与数十个 LoRA 编号，SDK 支持自然语言意图理解：自动识别萌宠生物、真人写真、国风水墨或机甲插画，动态选底模、装配对应 LoRA 并注入形态隔离词：
+
+```python
+# 零摩擦输入：无论是“皮卡丘在阳光下吃苹果”还是“水墨仙侠山水”
+images, decision = client.smart_generate(
+    prompt="一只可爱皮卡丘在向日葵花田奔跑",
+    output_dir="./downloads"
+)
+print(f"自动决策命中: {decision['rationale']}")
+```
+
+命令行也可以直接调用分析或生成：
+```bash
+# 语义意图分析（秒级输出装配决策方案，不占用显存）
+python scripts/comfy_agent_client.py --analyze "一只可爱皮卡丘在向日葵花田"
+
+# 智能生成
+python scripts/comfy_agent_client.py --smart "一只可爱皮卡丘在向日葵花田"
+```
+
+### 📦 自动化 LoRA 资产扩充与一键拉取
+全量 LoRA 资产分类字典收录于 [`loras_manifest.json`](loras_manifest.json)，支持通过自动化脚本一键下载至 G 盘（已自动跳过已有模型）：
+```bash
+python scripts/download_loras.py
+```
+
 ### ⚡ 一键端到端冒烟测试 (Smoke Test)
 外部智能体或开发者可随时运行冒烟测试，验证服务可用性、Manifest 索引与成片闭环：
 ```bash

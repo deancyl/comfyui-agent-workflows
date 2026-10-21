@@ -198,3 +198,52 @@ Agent 在为用户编写或优化 Prompt 时，必须遵循以下权重法则：
    - 但对色块平滑纯净的 2D 动漫萌物，重绘幅度高于 `0.40` 会凭空在平坦腹部与脸颊上“雕刻”出多余的人体褶皱与杂乱阴影；
    - **动漫萌宠/平涂角色的 Refine 重绘幅度黄金区间必须控制在：`0.35 ~ 0.38`**。既能超分强化眼睛星芒、光影反射与边缘闭合线，又绝不破坏纯净萌感。
 
+---
+
+## 八、 多维立体 LoRA 资产分类矩阵与智能意图路由器 (Multi-Dimensional LoRA Taxonomy & Smart Intent Router)
+
+为了彻底解决“输入一句话就想出好图，不用人工挑选工作流与 LoRA”的问题，系统已建立 **多维立体分类矩阵** 并原生集成在 SDK 中（[`loras_manifest.json`](./loras_manifest.json) 与 [`scripts/comfy_agent_client.py`](./scripts/comfy_agent_client.py)）。
+
+### 1. 五大核心分类维度 (Taxonomy Matrix)
+
+| 分类大项 | 代表风格与 LoRA | 触发关键词示例 | 底模绑定 | 核心防护特征 |
+| :--- | :--- | :--- | :--- | :--- |
+| **潮玩萌物与手办 (`toys_and_mascots`)** | • 泡泡玛特盲盒 (`blindbox_V1Mix`)<br/>• 粘土定格泥塑 (`ClayAnimationRedmond`)<br/>• 日系Figma手办 (`figmaAnimeFigures`)<br/>• 16-bit像素 (`PixelArtRedmond`)<br/>• 民间立体剪纸 (`KK_paperCut`) | 盲盒、手办、泡泡玛特、粘土、泥塑、像素、剪纸、皮卡丘、动物、吉祥物 | `anything-v5` | **强制注入形态隔离负向词**：`human body, navel, groin`，彻底阻断人体肉褶与尖牙 |
+| **东方美学与国风古韵 (`eastern_guofeng`)** | • 墨心·写意水墨 (`Moxin_10`)<br/>• 墨心·数客走马泼墨行书 (`Moxin_Shukezouma`)<br/>• 国风彩墨水彩 (`Colorwater_v4`) | 水墨、写意、山水、花鸟、泼墨、书法、武侠、国风、彩墨 | `anything-v5` | **防油画与防CG**：注入诗意留白提示词，剔除厚重油画与现代塑料感 |
+| **大师商业插画 (`master_illustration`)** | • 吉卜力水彩童话 (`ghibli_style_offset`)<br/>• 新海诚光影日漫 (`anime-lora-makoto-shinkai`)<br/>• Sam Yang商业半厚涂 (`samdoesartsSamYang`)<br/>• 机甲科幻外骨骼 (`mecha(mjstyle)`)<br/>• 游戏纯净立绘 (`tachi-e`) | 宫崎骏、吉卜力、新海诚、黄昏天空、半厚涂、机甲、外骨骼、赛博朋克、全身立绘 | `anything-v5` | **赛璐珞与光影微雕**：注入对应流派光影与边缘闭合线，Denoise 控制在 `0.38` |
+| **人像素描与写真 (`portraits_and_faces`)** | • 亚洲电影胶片肖像 (`koreanDollLikeness`)<br/>• 甜美二次元灵动美少女 (`cuteGirlMix4`) | 真人、写实、肖像、摄影、35mm、胶片、毛孔、美女、写真 | `Realistic_Vision` | **写实人像微观毛孔**：仅当明确为人像摄影时才挂载，Denoise 开启 `0.46` |
+| **工业级通用质感外挂 (`utility_enhancers`)** | • 8K微观细节微雕 (`more_details`)<br/>• 8步极速加速引擎 (`Hyper-SD15`)<br/>• 纯净极简背景控制 (`simple_background`) | 高清、细节强化、锐化、极速抽卡、秒级、白底、极简背景 | 泛用自适应 | 通用外挂，按需提升画面解析度与清晰度 |
+
+### 2. 自动化拉取与 GitHub 归档管理
+
+```bash
+# 自动化一键拉取全部 LoRA 并落盘至 G 盘（支持断点续传与已有跳过）
+python scripts/download_loras.py
+
+# 仅拉取特定分类（如潮玩手办）
+python scripts/download_loras.py --category toys_and_mascots
+```
+
+* **GitHub 归档规范**：
+  1. 代码仓仅维护轻量 `loras_manifest.json` 与 `scripts/download_loras.py`（< 100KB），杜绝巨型二进制挤占 git 历史；
+  2. 资产防删永久备份通过 GitHub Releases（`gh release upload`）归档，实现 100% 离线与可复现。
+
+### 3. Agent 智能意图路由调用代码
+
+```python
+from scripts.comfy_agent_client import ComfyAgentClient
+
+client = ComfyAgentClient("http://127.0.0.1:8284")
+
+# 零摩擦一键出图：Agent 自动分析意图、匹配底模、装配对应 LoRA、注入防畸变负向词
+images, decision = client.smart_generate(
+    prompt="一只可爱皮卡丘在阳光下吃苹果",
+    mode="quality",
+    output_dir="./downloads"
+)
+
+print(f"命中策略: {decision['rationale']}")
+print(f"交付成片: {images}")
+```
+
+

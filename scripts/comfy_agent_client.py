@@ -289,6 +289,296 @@ class ComfyAgentClient:
 
         return downloaded
 
+    def analyze_intent(self, prompt: str) -> Dict[str, Any]:
+        """
+        Multi-dimensional intent analysis:
+        Parses user prompt (Chinese or English) to automatically select:
+        - Optimal base model (Anything V5 vs Realistic Vision)
+        - Targeted LoRA (blindbox, clay, moxin, ghibli, korean doll, etc.)
+        - Tailored positive trigger keywords
+        - Crucial morphological isolation negative keywords (e.g. anti-human anatomy on mascots)
+        - Optimal workflow template (01, 06, 04, etc.)
+        """
+        p_lower = prompt.lower()
+        
+        # 1. Subject Category Detection
+        is_mascot_creature = any(w in p_lower for w in [
+            "皮卡丘", "宝可梦", "pokemon", "pikachu", "伊布", "小火龙", "猫", "狗", "动物",
+            "吉祥物", "萌宠", "怪兽", "兽人", "creature", "monster", "mascot", "animal", "pet", "cat", "dog"
+        ])
+        
+        is_human_realistic = any(w in p_lower for w in [
+            "真人", "写实", "肖像", "摄影", "35mm", "胶片", "毛孔", "真实", "美女", "女性", "男士",
+            "photorealistic", "portrait", "raw photo", "candid photograph", "human face"
+        ])
+        
+        # 2. Style & Art Movement Detection
+        is_blindbox = any(w in p_lower for w in ["盲盒", "泡泡玛特", "手办", "pop mart", "blindbox", "chibi toy", "公仔"])
+        is_clay = any(w in p_lower for w in ["粘土", "泥塑", "软陶", "定格动画", "阿德曼", "clay", "claymation", "plasticine"])
+        is_pixel = any(w in p_lower for w in ["像素", "8bit", "16bit", "街机", "复古游戏", "pixel", "pixel art"])
+        is_papercut = any(w in p_lower for w in ["剪纸", "纸雕", "纸艺", "窗花", "papercut", "paper craft"])
+        is_moxin_ink = any(w in p_lower for w in ["水墨", "国风", "墨心", "山水", "写意", "花鸟", "中国画", "古风", "ink", "chinese ink", "guofeng"])
+        is_calligraphy = any(w in p_lower for w in ["书法", "泼墨", "武侠", "走马", "飞白", "calligraphy", "wuxia"])
+        is_sam_yang = any(w in p_lower for w in ["半厚涂", "商业插画", "立绘", "sam yang", "samdoesarts", "数码插画"])
+        is_mecha = any(w in p_lower for w in ["机甲", "科幻", "外骨骼", "装甲", "机械", "赛博朋克", "mecha", "cyberpunk", "robot", "exosuit"])
+        is_ghibli = any(w in p_lower for w in ["吉卜力", "宫崎骏", "童话", "治愈", "水彩手绘", "ghibli", "miyazaki"])
+        is_shinkai = any(w in p_lower for w in ["新海诚", "日漫", "天空", "黄昏", "积雨云", "shinkai"])
+
+        # Default decision blueprint
+        decision = {
+            "prompt_original": prompt,
+            "category": "master_illustration",
+            "base_model": "anything-v5-PrtRE.safetensors",
+            "workflow_id": "06",
+            "lora_name": "more_details.safetensors",
+            "lora_weight": 0.45,
+            "injected_positive": "masterpiece, best quality, ultra-detailed, 8k resolution",
+            "injected_negative": "lowres, bad anatomy, bad hands, blurry, low quality",
+            "denoise_refine": 0.38,
+            "rationale": "二次元通用高质量插画流"
+        }
+        
+        # Priority 1: Chibi / Mascot / Toys (e.g. Pikachu, Blindbox, Clay)
+        if is_blindbox:
+            decision.update({
+                "category": "toys_and_mascots",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "04" if "极速" in p_lower else "06",
+                "lora_name": "blindbox_V1Mix.safetensors",
+                "lora_weight": 0.8,
+                "injected_positive": "masterpiece, best quality, blindbox, cute chibi figurine, smooth glossy plastic finish, studio soft lighting",
+                "injected_negative": "human body, human torso, human legs, navel, belly button, cleavage, breasts, groin, weird folds, human skin, lowres, blurry",
+                "denoise_refine": 0.35,
+                "rationale": "命中【泡泡玛特盲盒风】：装配 blindbox LoRA，注入形态隔离词，杜绝任何人体器官畸变"
+            })
+        elif is_clay:
+            decision.update({
+                "category": "toys_and_mascots",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "06",
+                "lora_name": "ClayAnimationRedmond15-ClayAnimation-Clay.safetensors",
+                "lora_weight": 0.85,
+                "injected_positive": "masterpiece, best quality, Clay Animation, claymation, plasticine texture, warm lighting, handcrafted",
+                "injected_negative": "human body, navel, cleavage, groin, weird folds, 3d cgi render, realistic photograph, lowres",
+                "denoise_refine": 0.35,
+                "rationale": "命中【粘土定格泥塑】：装配 ClayAnimation LoRA，呈现软陶手工质感"
+            })
+        elif is_pixel:
+            decision.update({
+                "category": "toys_and_mascots",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "04",
+                "lora_name": "PixelArtRedmond15V-PixelArt-PIXARFK.safetensors",
+                "lora_weight": 0.85,
+                "injected_positive": "Pixel Art, 16-bit, vibrant retro arcade game asset, crisp pixels, clean outlines",
+                "injected_negative": "smooth gradients, 3d render, blurry, photograph, photorealistic",
+                "denoise_refine": 0.30,
+                "rationale": "命中【复古像素艺术】：装配 PixelArt LoRA，保持颗粒点阵硬朗感"
+            })
+        elif is_papercut:
+            decision.update({
+                "category": "toys_and_mascots",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "06",
+                "lora_name": "KK_paperCut_v1.safetensors",
+                "lora_weight": 0.8,
+                "injected_positive": "masterpiece, paper cut, layered papercraft, 3d shadow box art, delicate edges",
+                "injected_negative": "lowres, blurry, photorealistic human, noisy",
+                "denoise_refine": 0.35,
+                "rationale": "命中【立体剪纸艺术】：装配 paperCut LoRA，营造层叠纸雕阴影"
+            })
+        # Priority 2: Eastern Guofeng / Ink Wash
+        elif is_calligraphy:
+            decision.update({
+                "category": "eastern_guofeng",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "06",
+                "lora_name": "Moxin_Shukezouma11.safetensors",
+                "lora_weight": 0.8,
+                "injected_positive": "(shukezouma:1.2), dynamic chinese calligraphy brushwork, splashes of ink, wuxia martial arts atmosphere",
+                "injected_negative": "photorealistic, western oil painting, 3d render, plastic, modern clothing",
+                "denoise_refine": 0.38,
+                "rationale": "命中【墨心·数客走马泼墨】：苍劲行书与水墨武侠战意"
+            })
+        elif is_moxin_ink:
+            decision.update({
+                "category": "eastern_guofeng",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "06",
+                "lora_name": "Moxin_10.safetensors",
+                "lora_weight": 0.85,
+                "injected_positive": "(moxin:1.2), traditional chinese ink painting, ink wash, elegant brush strokes, poetic mist",
+                "injected_negative": "3d render, cgi, western painting, plastic, blurry, noisy",
+                "denoise_refine": 0.38,
+                "rationale": "命中【墨心·写意国风水墨】：诗意留白与写意花鸟山水"
+            })
+        # Priority 3: Master Illustration & Pop Art
+        elif is_sam_yang:
+            decision.update({
+                "category": "master_illustration",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "12",
+                "lora_name": "samdoesartsSamYang_offsetRightFilesize.safetensors",
+                "lora_weight": 0.8,
+                "injected_positive": "sam yang style, samdoesarts, luminous skin, glowing rim light, stylized semi-realistic portrait",
+                "injected_negative": "lowres, bad anatomy, muddy colors, heavy noise, 3d render",
+                "denoise_refine": 0.38,
+                "rationale": "命中【Sam Yang 半厚涂插画】：商业插画光影与通透眼眸"
+            })
+        elif is_mecha:
+            decision.update({
+                "category": "master_illustration",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "11",
+                "lora_name": "mecha(mjstyle).safetensors",
+                "lora_weight": 0.8,
+                "injected_positive": "mecha, mechanical armor, exosuit, cybernetic parts, hard surface, intricate machinery, neon glow",
+                "injected_negative": "organic gore, lowres, blurry, cartoonish simplicity, bad anatomy",
+                "denoise_refine": 0.40,
+                "rationale": "命中【机甲科幻外骨骼】：硬表面机械结构与赛博光影"
+            })
+        elif is_ghibli:
+            decision.update({
+                "category": "master_illustration",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "06",
+                "lora_name": "ghibli_style_offset.safetensors",
+                "lora_weight": 0.85,
+                "injected_positive": "(studio ghibli style:1.35), hayao miyazaki, watercolor storybook texture, lush scenery, warm nostalgic lighting",
+                "injected_negative": "3d render, cgi, realistic photograph, noisy, blurry, dark gloomy",
+                "denoise_refine": 0.38,
+                "rationale": "命中【吉卜力手绘童话】：宫崎骏自然风光与治愈画风"
+            })
+        elif is_shinkai:
+            decision.update({
+                "category": "master_illustration",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "07",
+                "lora_name": "anime-lora-makoto-shinkai-anime-style.safetensors",
+                "lora_weight": 0.85,
+                "injected_positive": "(makoto shinkai style:1.35), cinematic anime movie, twilight sky, volumetric lighting, crisp reflections",
+                "injected_negative": "3d render, oil painting, muddy colors, bad anatomy",
+                "denoise_refine": 0.38,
+                "rationale": "命中【新海诚光影日漫】：极致积雨云与黄昏澄澈光影"
+            })
+        # Priority 4: Realistic Human Portraits
+        elif is_human_realistic and not is_mascot_creature:
+            decision.update({
+                "category": "portraits_and_faces",
+                "base_model": "Realistic_Vision_V5.1.safetensors",
+                "workflow_id": "01",
+                "lora_name": "koreanDollLikeness_v10.safetensors",
+                "lora_weight": 0.7,
+                "injected_positive": "masterpiece, best quality, ultra-detailed, photorealistic portrait, (natural skin texture, visible pores:1.2), soft ambient lighting, 35mm film photography",
+                "injected_negative": "3d render, cgi, anime, illustration, doll, wax, smooth plastic face, oversaturated, deformed",
+                "denoise_refine": 0.46,
+                "rationale": "命中【真人电影写实】：装配 Realistic Vision 底模 + koreanDollLikeness LoRA"
+            })
+        # Priority 5: Pure Mascot/Creature fallback (e.g. Pikachu without explicit style)
+        elif is_mascot_creature:
+            decision.update({
+                "category": "toys_and_mascots",
+                "base_model": "anything-v5-PrtRE.safetensors",
+                "workflow_id": "06",
+                "lora_name": "blindbox_V1Mix.safetensors",
+                "lora_weight": 0.75,
+                "injected_positive": "masterpiece, best quality, ultra-detailed, (extremely adorable cute mascot:1.35), studio soft lighting, crisp clean outlines, vibrant cheerful colors",
+                "injected_negative": "human body, human torso, human legs, navel, belly button, cleavage, breasts, groin, weird folds, human skin, creepy, angry, feral, rodent teeth, rat face, fangs, gums, lowres, blurry",
+                "denoise_refine": 0.36,
+                "rationale": "命中【萌宠/生物防护】：自动切换 Anything V5，装配盲盒/细节强化，注入全面形态隔离词，彻底杜绝人体器官畸变与鼠牙！"
+            })
+            
+        return decision
+
+    def smart_generate(
+        self,
+        prompt: str,
+        negative: Optional[str] = None,
+        seed: Optional[int] = None,
+        output_dir: str = "./downloads",
+        mode: str = "quality"
+    ) -> Tuple[List[str], Dict[str, Any]]:
+        """
+        Zero-friction intelligent generation:
+        1. Analyzes user intent (multi-dimensional semantics)
+        2. Dynamically binds optimal Checkpoint, LoRA, and morphology isolation negative tokens
+        3. Executes and returns generated image paths + decision blueprint
+        """
+        decision = self.analyze_intent(prompt)
+        wf_id = decision["workflow_id"]
+        
+        # Build prompt payload
+        graph, meta = self.build_prompt_payload(wf_id, prompt=prompt, negative=negative, seed=seed, mode=mode)
+        
+        # Dynamic Graph Patching:
+        # Patch CheckpointLoader (Node 1) if present
+        if meta and "checkpoint_node" in meta:
+            ck_id = meta["checkpoint_node"]["id"]
+            ck_field = meta["checkpoint_node"].get("model_field", "ckpt_name")
+            if ck_id in graph and "inputs" in graph[ck_id]:
+                graph[ck_id]["inputs"][ck_field] = decision["base_model"]
+        
+        # Patch LoraLoader if present in graph
+        for nid, nnode in graph.items():
+            if nnode.get("class_type") == "LoraLoader":
+                nnode["inputs"]["lora_name"] = decision["lora_name"]
+                nnode["inputs"]["strength_model"] = decision["lora_weight"]
+                nnode["inputs"]["strength_clip"] = decision["lora_weight"]
+                break
+                
+        # Patch Prompts with Injected Keywords
+        if meta and "prompt_node" in meta:
+            pn_id = meta["prompt_node"]["id"]
+            if pn_id in graph and "inputs" in graph[pn_id]:
+                cur_p = graph[pn_id]["inputs"].get("text", "")
+                graph[pn_id]["inputs"]["text"] = f"{decision['injected_positive']}, {cur_p}"
+                
+        if meta and "negative_node" in meta:
+            nn_id = meta["negative_node"]["id"]
+            if nn_id in graph and "inputs" in graph[nn_id]:
+                cur_n = graph[nn_id]["inputs"].get("text", "")
+                graph[nn_id]["inputs"]["text"] = f"{decision['injected_negative']}, {cur_n}"
+                
+        # Patch Refine Sampler Denoise if present
+        if meta and "refine_sampler_node" in meta:
+            rn_id = meta["refine_sampler_node"]["id"]
+            if rn_id in graph and "inputs" in graph[rn_id]:
+                graph[rn_id]["inputs"]["denoise"] = decision["denoise_refine"]
+                
+        print(f"\n[SmartRouter] ===============================================")
+        print(f"[SmartRouter] Prompt: '{prompt}'")
+        print(f"[SmartRouter] Category: {decision['category']}")
+        print(f"[SmartRouter] Selected Workflow: {wf_id} ({meta.get('name', 'Unknown') if meta else 'Unknown'})")
+        print(f"[SmartRouter] Base Model: {decision['base_model']}")
+        print(f"[SmartRouter] Attached LoRA: {decision['lora_name']} (Weight: {decision['lora_weight']})")
+        print(f"[SmartRouter] Rationale: {decision['rationale']}")
+        print(f"[SmartRouter] ===============================================\n")
+        
+        prompt_id = self.queue_prompt(graph)
+        print(f"[ComfyAgent] Queued smart task {prompt_id}, waiting for completion...")
+        
+        def _on_progress(elapsed: float):
+            print(f"[ComfyAgent] Sampling in progress... ({elapsed:.1f}s elapsed)", end="\r")
+
+        history_entry = self.wait_for_completion(prompt_id, progress_callback=_on_progress)
+        print(f"\n[ComfyAgent] Task {prompt_id} completed successfully!")
+
+        outputs = history_entry.get("outputs", {})
+        downloaded = []
+        for node_id, node_output in outputs.items():
+            if "images" in node_output:
+                for img_info in node_output["images"]:
+                    fn = img_info["filename"]
+                    sub = img_info.get("subfolder", "")
+                    typ = img_info.get("type", "output")
+                    out_path = os.path.join(output_dir, fn)
+                    saved = self.download_image(fn, sub, typ, out_path)
+                    print(f"[ComfyAgent] Downloaded image: {saved}")
+                    downloaded.append(saved)
+
+        return downloaded, decision
+
+
 def run_smoke_test(client: ComfyAgentClient, target_wf: str = "04") -> bool:
     """
     End-to-end smoke test:
@@ -342,6 +632,8 @@ def run_smoke_test(client: ComfyAgentClient, target_wf: str = "04") -> bool:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ComfyUI Agent Client SDK")
     parser.add_argument("--test", action="store_true", help="Run end-to-end smoke test on live ComfyUI server")
+    parser.add_argument("--smart", type=str, default=None, help="Execute intelligent generation with multi-dimensional intent routing")
+    parser.add_argument("--analyze", type=str, default=None, help="Analyze prompt intent and print decision blueprint without running")
     parser.add_argument("--workflow", type=str, default="04", help="Workflow ID (e.g. 01, 04, 11) or style tag")
     parser.add_argument("--prompt", type=str, default=None, help="Positive prompt text")
     parser.add_argument("--negative", type=str, default=None, help="Negative prompt text")
@@ -352,7 +644,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
     client = ComfyAgentClient(server_url=args.server)
 
-    if args.test:
+    if args.analyze:
+        decision = client.analyze_intent(args.analyze)
+        print("\n=== Multi-Dimensional Intent Analysis Blueprint ===")
+        print(json.dumps(decision, indent=2, ensure_ascii=False))
+        sys.exit(0)
+    elif args.smart:
+        images, decision = client.smart_generate(
+            prompt=args.smart,
+            negative=args.negative,
+            seed=args.seed,
+            output_dir=args.output_dir
+        )
+        print(f"\n[SmartResult] Generated images: {images}")
+        sys.exit(0)
+    elif args.test:
         success = run_smoke_test(client, target_wf=args.workflow)
         sys.exit(0 if success else 1)
     elif args.prompt:
