@@ -176,3 +176,25 @@ Agent 在为用户编写或优化 Prompt 时，必须遵循以下权重法则：
 | **生成结果全黑 (Black Image / NaN)** | VAE 溢出或浮点数下溢 | 1. 强制换用 `vae-ft-mse-840000-ema-pruned.safetensors`；<br/>2. 校验模型是否在 CPU 运行 VAE 解码（`--cpu-vae`）。 |
 | **生成的二次元人像边缘发灰、有双重重影** | 存在被遗留的 FreeU 节点 | 确认工作流中已完全旁路或删除 `FreeU_V2` 节点。 |
 | **HTTP 404: Node not found (`NSFW_WD14_Interrogator`)** | 自定义节点未加载 | 检查 `custom_nodes/ComfyUI-NSFW-Interrogator` 是否存在，重启 ComfyUI。 |
+
+---
+
+## 七、 非人萌物/吉祥物/宝可梦高审美微调与防畸变红线 (Creature & Mascot Aesthetic Invariants)
+
+在调度非人生物、吉祥物或动漫 IP 萌宠（如皮卡丘、伊布、各种吉祥物角色）时，必须遵守以下四道审美防御红线，杜绝丑图与人体异化：
+
+1. **纯英文标准 IP 专有名词法则 (English-Only Standard IP Rule)**：
+   - SD 1.5 底层 CLIP ViT-L/14 为纯英文编码器。中文输入（如“皮卡丘”）无法激活其潜空间的概念先验，会直接退化为底模默认的真人肖像先验。
+   - 调度必须使用标准英文名称强化：`pikachu, pokemon, (official pokemon company anime movie screencap:1.35), (extremely adorable cute pikachu:1.4)`。
+2. **形态隔离与人体解剖学污染防御 (Morphological Isolation & Anti-Human Traps)**：
+   - 动漫底模（如 Anything V5）在生成非人萌物时，容易在其平滑圆润的腹部或躯干错误投射人类生理器官（如肚脐、乳沟、生殖沟壑、人腿指节）。
+   - **负向提示词必须强制注入形态隔离阻断词**：
+     `human body, human torso, human legs, navel, belly button, cleavage, breasts, groin, weird folds, human skin`。
+3. **真实动物词义联想陷阱回避 (Word Association Trap Avoidance)**：
+   - 严禁为了描述属性添加真实啮齿动物词汇（如 `mouse, rat, rodent`），会导致模型联想野生啮齿动物并画出尖牙、牙龈与凶狠表情；
+   - 负向词显式屏蔽：`creepy, angry, feral, rodent teeth, rat face, fangs, gums`。
+4. **平涂赛璐珞重绘幅度 (Refine Denoise Threshold)**：
+   - 真人与复杂写实场景的 Refine 重绘幅度通常为 `0.44 ~ 0.52`；
+   - 但对色块平滑纯净的 2D 动漫萌物，重绘幅度高于 `0.40` 会凭空在平坦腹部与脸颊上“雕刻”出多余的人体褶皱与杂乱阴影；
+   - **动漫萌宠/平涂角色的 Refine 重绘幅度黄金区间必须控制在：`0.35 ~ 0.38`**。既能超分强化眼睛星芒、光影反射与边缘闭合线，又绝不破坏纯净萌感。
+
