@@ -59,35 +59,29 @@
 
 ---
 
-## 🛠️ 以后如何通过 GitHub 配置专版 ComfyUI
+## 🛠️ 本地一键全自动安装与环境复刻 (Turnkey Single-Script Installer)
 
-详细步骤请参阅专版部署指南 [`docs/EDITION_SETUP_GUIDE.md`](docs/EDITION_SETUP_GUIDE.md)。
+无论是在全新电脑上从零搭建，还是为现有的 ComfyUI（如秋叶整合包、官方独立版）进行一键注入升级，**仅需运行根目录下的单一脚本 `install.ps1`（或双击 `install.bat`）即可全自动闭环完成**：
 
-### 场景 1：在已有 ComfyUI（如秋叶整合包或独立版）上一键升级
-克隆本仓库并执行部署脚本，10 秒内即可将现有 ComfyUI 升级为本专版：
 ```powershell
+# 1. 克隆本仓库
 git clone https://github.com/deancyl/comfyui-agent-workflows.git
 cd comfyui-agent-workflows
-powershell -ExecutionPolicy Bypass -File scripts/setup_edition.ps1 -TargetDir "您的ComfyUI路径"
+
+# 2. 执行单脚本主安装器 (全自动探测目标路径、注入17套工作流、安装节点、打上ZLUDA驱动补丁并拉取19款LoRA)
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-### 场景 2：在全新电脑上从零配置专版 ComfyUI
-```powershell
-# 1. 克隆 ComfyUI 原版并建立环境
-git clone https://github.com/comfyanonymous/ComfyUI.git C:\Users\deanc\ComfyUI-Zluda
-cd C:\Users\deanc\ComfyUI-Zluda
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip install -r requirements.txt
+> **Windows 桌面用户**：直接双击根目录下的 **`install.bat`** 即可在交互式引导下完成全部安装！
 
-# 2. 克隆本仓库并一键注入专版工作流、节点、补丁与启动器
-git clone https://github.com/deancyl/comfyui-agent-workflows.git
-powershell -ExecutionPolicy Bypass -File comfyui-agent-workflows/scripts/setup_edition.ps1 -TargetDir "C:\Users\deanc\ComfyUI-Zluda"
+#### `install.ps1` 全自动安装流水线包含：
+1. **自动路径探测与环境自愈**：自动扫描秋叶整合包或独立版 ComfyUI；若全新机器无 ComfyUI，脚本会自动从官方拉取源码并创建 Python 虚拟环境；
+2. **17 套双轨工作流批量部署**：同步至 `user/default/workflows/`；
+3. **关键扩展安装**：自动装配 `ComfyUI-NSFW-Interrogator` 与 `Gacha_Prompt_Randomizer` 抽卡动态词池；
+4. **硬件驱动自适应加速 (AMD 780M / ZLUDA)**：自动检测 AMD APU，若缺失 ZLUDA 运行时，自动从 GitHub Releases 资产拉取预编译包并解压，打上 LayerNorm 防崩溃补丁；
+5. **模型与多维 LoRA 同步**：自动核验并下载 19 款精选经典 LoRA（泡泡玛特盲盒、粘土定格、水墨墨心、Figma手办等）；
+6. **桌面无控制台黑框静默启动器**：生成 `launch_gui.vbs`，实现双击秒开独立桌面应用体验。
 
-# 3. 一键下载核心模型
-powershell -ExecutionPolicy Bypass -File comfyui-agent-workflows/scripts/download_models.ps1 -TargetDir "C:\Users\deanc\ComfyUI-Zluda"
-```
 
 ---
 
