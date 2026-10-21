@@ -74,8 +74,28 @@ $srcNodes = Join-Path $RepoRoot "custom_nodes\ComfyUI-NSFW-Interrogator\*"
 Copy-Item -Path $srcNodes -Destination $nodeDest -Recurse -Force
 Write-Host "  -> Successfully installed ComfyUI-NSFW-Interrogator" -ForegroundColor Green
 
-# 4. Apply Patches & Launchers
-Write-Host "`n[4/4] Applying Stability Patches & Launchers..." -ForegroundColor Cyan
+# 4. AMD ZLUDA & Tensile Assets Verification / Auto-Download
+$zludaDir = Join-Path $TargetDir "zluda"
+$gfxDir = Join-Path $TargetDir "gfx1103_libs"
+if (-not (Test-Path (Join-Path $zludaDir "zluda.exe")) -or -not (Test-Path $gfxDir)) {
+    Write-Host "`n[Notice] ZLUDA / gfx1103 Tensile libraries not detected in $TargetDir." -ForegroundColor Yellow
+    $ans = Read-Host "Do you want to download pre-compiled AMD 780M ZLUDA + Tensile assets from our GitHub Releases? (y/n)"
+    if ($ans -eq "y" -or $ans -eq "Y") {
+        Write-Host "  -> Downloading permanent release asset from deancyl/comfyui-agent-workflows..." -ForegroundColor Cyan
+        $zipUrl = "https://github.com/deancyl/comfyui-agent-workflows/releases/download/v1.0.0/zluda-amd780m-gfx1103-rocm57.zip"
+        $tmpZip = Join-Path $TargetDir "zluda_asset.zip"
+        curl.exe -C - -L --ssl-no-revoke "$zipUrl" -o "$tmpZip"
+        if (Test-Path $tmpZip) {
+            Write-Host "  -> Extracting ZLUDA and gfx1103_libs to $TargetDir..." -ForegroundColor Cyan
+            Expand-Archive -Path $tmpZip -DestinationPath $TargetDir -Force
+            Remove-Item $tmpZip -Force
+            Write-Host "  -> ZLUDA & gfx1103 Tensile runtime installed successfully!" -ForegroundColor Green
+        }
+    }
+}
+
+# 5. Apply Patches & Launchers
+Write-Host "`n[5/5] Applying Stability Patches & Launchers..." -ForegroundColor Cyan
 $pythonExe = Join-Path $TargetDir "venv\Scripts\python.exe"
 if (-not (Test-Path $pythonExe)) {
     $pythonExe = "python"
