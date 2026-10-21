@@ -1,10 +1,11 @@
 # 🎨 ComfyUI Dual-Track Agent Edition
 
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub Wiki](https://img.shields.io/badge/Wiki-Knowledge%20Base-blueviolet.svg)](wiki/Home.md)
 [![ComfyUI](https://img.shields.io/badge/ComfyUI-Core%20v0.3+-success.svg)](https://github.com/comfyanonymous/ComfyUI)
-[![AMD ZLUDA Verified](https://img.shields.io/badge/AMD%20ZLUDA-Radeon%20780M%20Passed-orange.svg)](docs/HARDWARE_CONFIG_ZLUDA_AMD.md)
+[![AMD ZLUDA Verified](https://img.shields.io/badge/AMD%20ZLUDA-Radeon%20780M%20Passed-orange.svg)](wiki/Hardware-Tuning-AMD-780M.md)
 [![Agent Ready](https://img.shields.io/badge/Agent-Autonomous%20Contract-purple.svg)](AGENT_GUIDE.md)
-[![Turnkey Setup](https://img.shields.io/badge/Setup-One--Click%20Deploy-brightgreen.svg)](docs/EDITION_SETUP_GUIDE.md)
+[![Turnkey Setup](https://img.shields.io/badge/Setup-One--Click%20Deploy-brightgreen.svg)](install.ps1)
 
 工业级 ComfyUI 双轨自动化工作流矩阵、硬件级调优套件与大模型智能体调度方案。  
 **本仓库是此专版 ComfyUI 的唯一权威源**：未来在任何全新电脑、重装系统或已有环境中，均可通过本仓库在数分钟内一键配置或复刻出 100% 相同标准的专版 ComfyUI。
@@ -156,35 +157,56 @@ python scripts/comfy_agent_client.py --test
 
 ---
 
+## 📚 项目官方知识库 (Wiki & Docs)
+
+本项目配备完整的官方全景知识库与排坑百科，文档收录于 [`wiki/`](wiki/) 与 [`docs/`](docs/) 目录：
+
+| 章节名称 | 文档链接 | 核心内容 |
+| :--- | :--- | :--- |
+| **知识库首页** | [`wiki/Home.md`](wiki/Home.md) | 官方知识库目录索引与全景架构概览 |
+| **极速上手与一键安装** | [`wiki/Quick-Start.md`](wiki/Quick-Start.md) | `install.ps1` / `install.bat` 单脚本安装流水线与高级参数 |
+| **17 套双轨工作流图谱** | [`wiki/Workflow-Catalog.md`](wiki/Workflow-Catalog.md) | 17 套工业级工作流矩阵、节点速查与双轨拓扑架构 |
+| **多维 LoRA 资产矩阵** | [`wiki/LoRA-Asset-Matrix.md`](wiki/LoRA-Asset-Matrix.md) | 5 大主分类、19 款高分 LoRA 清单、触发词与自动拉取 |
+| **智能意图路由器规范** | [`wiki/Smart-Intent-Router.md`](wiki/Smart-Intent-Router.md) | 自然语言意图解析、动态底模/LoRA装配与形态隔离防畸变机制 |
+| **AMD 780M 硬件调优** | [`wiki/Hardware-Tuning-AMD-780M.md`](wiki/Hardware-Tuning-AMD-780M.md) | ZLUDA / ROCm 5.7 踩坑实录、LayerNorm 崩溃自愈与显存防爆 |
+| **Agent SDK 调度契约** | [`wiki/Agent-SDK-Guide.md`](wiki/Agent-SDK-Guide.md) | Python SDK 范式、自动化冒烟测试套件与 REST API 字典 |
+| **高频排坑手册 (FAQ)** | [`wiki/Troubleshooting-FAQ.md`](wiki/Troubleshooting-FAQ.md) | WinError 10054、休眠时间膨胀、损坏伪图片排查自愈 |
+
+---
+
 ## 📂 仓库目录结构
 
 ```text
 comfyui-agent-workflows/
-├── README.md                          # 项目主说明文档
+├── README.md                          # 🌟 项目主说明文档与总览导航
+├── install.ps1                        # 🚀 全平台一键安装、升级与复刻主脚本 (Master Installer)
+├── install.bat                        # 🖱️ Windows 桌面用户双击一键安装批处理
 ├── AGENT_GUIDE.md                     # 🤖 大模型智能体专属自动化调度契约 (Machine-Readable)
-├── workflows_manifest.json            # 📋 全局机器可读元数据索引 (零硬编码调度主字典)
+├── workflows_manifest.json            # 📋 17套工作流全局元数据索引字典 (零硬编码调度)
+├── loras_manifest.json                # 📦 19款精选LoRA多维分类字典与触发规则
 ├── LICENSE                            # MIT 开源许可证
+├── wiki/                              # 📚 官方全景知识库与排坑百科
+│   ├── Home.md                        # Wiki 知识库主页
+│   ├── Quick-Start.md                 # 极速上手与安装指南
+│   ├── Workflow-Catalog.md            # 17 套工作流全景图谱
+│   ├── LoRA-Asset-Matrix.md           # 5 大分类 19 款 LoRA 资产图谱
+│   ├── Smart-Intent-Router.md         # 智能意图路由器规范与防畸变阻断
+│   ├── Hardware-Tuning-AMD-780M.md    # AMD 780M / ZLUDA 硬件级调优
+│   ├── Agent-SDK-Guide.md             # Agent 调度与 Python SDK 指南
+│   └── Troubleshooting-FAQ.md         # 常见问题与故障自愈手册
 ├── workflows_api/                     # ⚡ 17 套纯 API 执行图 JSON (可直接 POST 到 /prompt)
-│   └── 01 ~ 17 全部 17 套 API 格式工作流
 ├── workflows/                         # 17 套 UI 可视化工程 JSON (含坐标与连线)
-│   ├── 01 ~ 17 全部 17 套工作流
-│   └── README.md                      # 工作流矩阵总览与节点映射速查
-├── custom_nodes/                      # 配套自定义扩展
-│   └── ComfyUI-NSFW-Interrogator/     # WF03 必需的 WD14 + 双轨中英对照反推节点
-├── patches/                           # 专版稳定性补丁
-│   ├── apply_zluda_ln_patch.py        # ZLUDA LayerNorm 驱动崩溃修复补丁
-│   ├── patch_utils.py                 # PyTorch safe_globals 兼容补丁
-│   └── extra_model_paths.yaml.example # 多盘与整合包共享模型路径模板
-├── docs/
-│   ├── EDITION_SETUP_GUIDE.md         # 🚀 专版从零部署与跨机器一键配置全指南
-│   ├── HARDWARE_CONFIG_ZLUDA_AMD.md   # 🛠️ AMD 780M / ZLUDA / ROCm 5.7 硬件级调优避坑全指南
-│   ├── MODEL_ZOO.md                   # 📦 所需 Checkpoint、LoRA、ControlNet 下载清单与放置路径
-│   └── API_SPEC.md                    # 🌐 ComfyUI REST API & WebSocket 协议规范
+├── custom_nodes/                      # 配套自定义扩展 (含 Gacha Randomizer 动态词池)
+│   └── ComfyUI-NSFW-Interrogator/
+├── patches/                           # 专版稳定性补丁 (LayerNorm 防崩溃 / safe_globals)
+├── docs/                              # 部署与硬件配置补充文档
 └── scripts/
-    ├── comfy_agent_client.py          # 强化版 Agent 调度 SDK (含 --test 冒烟测试套件)
+    ├── comfy_agent_client.py          # 强化版 Agent 调度 SDK (含 --smart 意图路由与冒烟测试)
+    ├── download_loras.py              # 19 款 LoRA 流式断点续传一键同步下载器
+    ├── sync_wiki.py                   # GitHub Wiki 官方仓库一键推送同步工具
     ├── ui_to_api_prompt.py            # 离线/在线 UI 工作流转 API 执行图转换器
-    ├── setup_edition.ps1              # 专版一键部署与同步脚本 (Master Deployer)
-    ├── download_models.ps1            # 核心模型断点续传一键下载器
+    ├── setup_edition.ps1              # 专版部署与同步执行引擎
+    ├── download_models.ps1            # 核心底模一键下载器
     ├── start_zluda_amd.ps1            # AMD 780M / ZLUDA Windows 静默无窗口启动脚本
     └── start_nvidia.bat               # NVIDIA CUDA 通用启动批处理
 ```
