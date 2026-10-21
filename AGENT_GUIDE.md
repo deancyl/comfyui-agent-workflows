@@ -68,92 +68,85 @@ flowchart TD
 
 ---
 
-## 三、 17 套工作流关键节点 ID 注册表 (Node ID Map)
+## 三、 零硬编码机器索引清单 (`workflows_manifest.json`) 与 API 目录
 
-在通过 API 提交动态提示词、随机种子或尺寸调整时，Agent 必须精准定位对应节点 ID：
+为了让网关与智能体摆脱针对特定文件路径与节点 ID 的硬编码，仓库根目录提供了权威全局索引 **[`workflows_manifest.json`](./workflows_manifest.json)**，所有纯 API 执行图存放在 **[`workflows_api/`](./workflows_api/)** 目录中。
 
-| 工作流文件前缀 | 正向词 (Node ID) | 负向词 (Node ID) | 尺寸 Latent (Node ID) | 高精采样 1 (Node ID) | 微雕采样 2 (Node ID) | 成片保存 (Node ID) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **01_真人写实** | `"3"` | `"4"` | `"5"` | `"6"` (26步) | `"8"` (14步) | `"10"` |
-| **02_抓拍视角** | `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
-| **03_提示词反推** | 载入图 `"1"` | 排除词 `"2"` | N/A (分析工具) | N/A | N/A | 展示 `"4"`, `"5"` |
-| **04_极速抽卡** | `"4"` (随机池) | `"5"` | `"6"` | `"7"` (8步极速) | 无微雕 | `"9"` |
-| **05_二次元总控** | `"5"` | `"6"` | `"7"` | `"8"` (26步) | `"10"` (14步) | `"12"` |
-| **06_吉卜力手绘** | `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
-| **07_新海诚日漫** | `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
-| **08_二次元暗黑** | `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
-| **09_精细厚涂修女** | `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
-| **10_4大主题总控** | 主题词 `"3"`~`"6"` | `"8"` | `"9"` | `"10"` (26步) | `"12"` (14步) | `"14"` |
-| **11_材质强化沙箱** | 角色 `"3"`, 材质 `"4"` | `"6"` | `"7"` | `"8"` (26步) | `"10"` (14步) | `"12"` |
-| **12_BetterWaifu** | 正向姿态 `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
-| **13_局部重绘修图** | 重绘目标 `"5"` | `"6"` | 垫图/遮罩 `"3"`, `"4"`| `"7"` (26步重绘) | N/A | `"9"` |
-| **14_ControlNet控制** | 引导词 `"4"` | `"5"` | 骨骼图 `"3"` | `"8"` (26步控制) | `"10"` (14步) | `"12"` |
-| **15_生活写实写真** | 场景词 `"3"` | `"4"` | `"5"` | `"6"` (26步) | `"8"` (14步) | `"10"` |
-| **16_宽屏风景壁纸** | 风光词 `"3"` | `"4"` | `"5"` (896x512) | `"6"` (26步) | `"8"` (14步) | `"10"` |
-| **17_角色三视图** | 设定集词 `"3"` | `"4"` | `"5"` (768x512) | `"6"` (28步) | `"8"` (15步) | `"10"` |
+### 1. 机器索引结构规范
+```json
+{
+  "01": {
+    "name": "01_真人写实_极致NanoBanana",
+    "description": "电影级胶片写实人像，真实皮肤微观毛孔与耳廓次表面透光",
+    "api_file": "workflows_api/01_真人写实_极致NanoBanana_次表面透析_电影双段精雕流.json",
+    "ui_file": "workflows/01_真人写实_极致NanoBanana_次表面透析_电影双段精雕流.json",
+    "style_tags": ["真人", "写实", "肖像", "摄影", "电影质感", "photorealistic", "portrait"],
+    "prompt_node": { "id": "2", "field": "text" },
+    "negative_node": { "id": "3", "field": "text" },
+    "sampler_node": { "id": "5", "seed_field": "seed", "steps_field": "steps", "cfg_field": "cfg", "denoise_field": "denoise" },
+    "refine_sampler_node": { "id": "7", "seed_field": "seed", "steps_field": "steps", "denoise_field": "denoise" },
+    "preview_sampler_node": { "id": "12", "seed_field": "seed", "steps_field": "steps" },
+    "output_node": "9",
+    "preview_output_node": "14",
+    "default_size": { "width": 512, "height": 768 },
+    "checkpoint_node": { "id": "1", "model_field": "ckpt_name" }
+  }
+}
+```
+
+### 2. 17 套工作流关键节点速查表 (Node ID Map)
+
+| 工作流 ID | 工作流名称 | 正向词 (Node ID) | 负向词 (Node ID) | 尺寸 Latent (Node ID) | 高精采样 1 (Node ID) | 微雕采样 2 (Node ID) | 成片保存 (Node ID) |
+| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **01** | 真人写实·NanoBanana | `"2"` | `"3"` | `"4"` | `"5"` (26步) | `"7"` (14步) | `"9"` |
+| **02** | 抓拍视角·POV画中画 | `"2"` | `"3"` | `"4"` | `"5"` (26步) | `"7"` (14步) | `"9"` |
+| **03** | 提示词反推工作台 | 载入图 `"1"` | 排除词 `"2"` | N/A (分析工具) | N/A | N/A | 展示 `"3"`~`"6"` |
+| **04** | 极速抽卡·无限多风格 | 动态池 `"4"` | `"5"` | `"6"` | `"7"` (8步极速) | 无微雕 | `"9"` |
+| **05** | 二次元风格总控台 | `"5"` | `"6"` | `"7"` | `"8"` (26步) | `"10"` (14步) | `"12"` |
+| **06** | 吉卜力唯美手绘风 | `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
+| **07** | 新海诚光影日漫 | `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
+| **08** | 二次元暗黑深渊 | `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
+| **09** | 2D精细厚涂修女 | `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
+| **10** | 4大经典主题总控 | 主题词 `"3"`~`"6"` | `"8"` | `"9"` | `"10"` (26步) | `"12"` (14步) | `"14"` |
+| **11** | 材质强化沙箱 | 角色 `"3"`, 材质 `"4"` | `"6"` | `"7"` | `"8"` (26步) | `"10"` (14步) | `"12"` |
+| **12** | BetterWaifu姿态总控 | 正向姿态 `"4"` | `"5"` | `"6"` | `"7"` (26步) | `"9"` (14步) | `"11"` |
+| **13** | 局部重绘修图流 | 重绘目标 `"5"` | `"6"` | 垫图/遮罩 `"3"`, `"4"`| `"7"` (26步重绘) | N/A | `"9"` |
+| **14** | ControlNet姿态控制 | 引导词 `"4"` | `"5"` | 骨骼图 `"3"` | `"8"` (26步控制) | `"10"` (14步) | `"12"` |
+| **15** | 生活写实写真流 | 场景词 `"3"` | `"4"` | `"5"` | `"6"` (26步) | `"8"` (14步) | `"10"` |
+| **16** | 宽屏风光壁纸流 | 风光词 `"2"` | `"3"` | `"4"` (896x512) | `"5"` (26步) | `"7"` (14步) | `"9"` |
+| **17** | 角色设定三视图 | 设定集词 `"2"` | `"5"` | `"6"` (832x512) | `"7"` (28步) | `"9"` (15步) | `"11"` |
 
 ---
 
 ## 四、 Agent 程序化调度标准代码范式 (Python SDK)
 
-Agent 可直接调用本仓库附带的 [`scripts/comfy_agent_client.py`](./scripts/comfy_agent_client.py)，或使用如下标准代码块实现自包含调度：
+Agent 可直接调用已加固的 [`scripts/comfy_agent_client.py`](./scripts/comfy_agent_client.py)，支持 **零硬编码 Manifest 驱动调度** 与 **端到端冒烟测试**：
 
+### 1. 冒烟测试执行（建议在 Agent 首次连接环境时自检）
+```bash
+python scripts/comfy_agent_client.py --test
+```
+该命令会自动自检服务健康度、读取 Manifest、调用 `04` 极速流派发生成任务、轮询队列并验证成片下载落盘。
+
+### 2. 智能体程序化调用范式
 ```python
-import json
-import urllib.request
-import urllib.parse
-import time
-import os
+from scripts.comfy_agent_client import ComfyAgentClient
 
-SERVER = "http://127.0.0.1:8284"
+client = ComfyAgentClient("http://127.0.0.1:8284")
 
-def generate_image_for_agent(workflow_json_path: str, prompt_text: str, negative_text: str, seed: int = None) -> str:
-    """
-    Agent 调度标准函数：加载工作流 -> 注入提示词与随机种子 -> 执行并返回成片本地路径
-    """
-    if seed is None:
-        seed = int(time.time() * 1000) % (2**31)
+# 1. 根据风格标签或工作流编号匹配
+wf_info = client.get_workflow_info("photorealistic")  # 或 client.get_workflow_info("01")
+print(f"匹配到工作流: {wf_info['name']}")
 
-    # 1. 读取基础工作流 API 模板
-    with open(workflow_json_path, "r", encoding="utf-8") as f:
-        graph = json.load(f)
+# 2. 注入提示词并全自动运行（自动读取 manifest 解析 node ID）
+images = client.run_generation(
+    wf_id_or_path="01",
+    prompt="masterpiece, best quality, ultra-detailed, photorealistic portrait, soft volumetric lighting",
+    negative="lowres, bad anatomy, bad hands, blurry",
+    output_dir="./downloads"
+)
 
-    # 2. 动态注入（以通用节点 ID 约定为例）
-    for nid, node in graph.items():
-        ctype = node.get("class_type")
-        # 注入正向词
-        if ctype == "CLIPTextEncode" and "positive" in node.get("_meta", {}).get("title", "").lower():
-            node["inputs"]["text"] = prompt_text
-        # 注入基础采样种子
-        if ctype == "KSampler":
-            node["inputs"]["seed"] = seed
-
-    # 3. 提交任务至队列
-    req_data = json.dumps({"prompt": graph}).encode("utf-8")
-    req = urllib.request.Request(f"{SERVER}/prompt", data=req_data, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req) as resp:
-        res = json.loads(resp.read().decode("utf-8"))
-    prompt_id = res["prompt_id"]
-
-    # 4. 轮询直到成片
-    start_t = time.time()
-    while time.time() - start_t < 600:
-        with urllib.request.urlopen(f"{SERVER}/history/{prompt_id}") as hist_resp:
-            hist = json.loads(hist_resp.read().decode("utf-8"))
-            if prompt_id in hist:
-                outputs = hist[prompt_id].get("outputs", {})
-                for nid, out_data in outputs.items():
-                    if "images" in out_data and len(out_data["images"]) > 0:
-                        img_info = out_data["images"][0]
-                        fn = img_info["filename"]
-                        # 下载图像
-                        view_url = f"{SERVER}/view?" + urllib.parse.urlencode({"filename": fn})
-                        local_path = os.path.join("./downloads", fn)
-                        os.makedirs("./downloads", exist_ok=True)
-                        urllib.request.urlretrieve(view_url, local_path)
-                        return local_path
-        time.sleep(3)
-    raise TimeoutError(f"Task {prompt_id} timed out.")
+print(f"已下载交付成片: {images}")
 ```
 
 ---

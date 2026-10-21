@@ -113,12 +113,22 @@ from scripts.comfy_agent_client import ComfyAgentClient
 
 client = ComfyAgentClient("http://127.0.0.1:8284")
 
-# 1. 载入 WF01 电影级真人写实工作流
-graph = client.load_workflow_file("workflows/01_真人写实_极致NanoBanana_次表面透析_电影双段精雕流.json")
+# 1. 自动读取 workflows_manifest.json 匹配风格
+wf_info = client.get_workflow_info("01")  # 或按标签 "photorealistic"
 
-# 2. 提交任务并全自动等待微雕成片下载
-images = client.run_generation(graph, output_dir="./output_images")
+# 2. 注入提示词并全自动运行（自动解析 node ID 提交至 /prompt 并下载成片）
+images = client.run_generation(
+    wf_id_or_path="01",
+    prompt="masterpiece, best quality, photorealistic portrait, soft volumetric lighting",
+    output_dir="./downloads"
+)
 print(f"生成的成片已下载: {images}")
+```
+
+### ⚡ 一键端到端冒烟测试 (Smoke Test)
+外部智能体或开发者可随时运行冒烟测试，验证服务可用性、Manifest 索引与成片闭环：
+```bash
+python scripts/comfy_agent_client.py --test
 ```
 
 更多关于参数热修改、随机种子注入、队列监听与故障自愈的规范，请直接阅读机器可读文档 [`AGENT_GUIDE.md`](AGENT_GUIDE.md)。
@@ -131,8 +141,11 @@ print(f"生成的成片已下载: {images}")
 comfyui-agent-workflows/
 ├── README.md                          # 项目主说明文档
 ├── AGENT_GUIDE.md                     # 🤖 大模型智能体专属自动化调度契约 (Machine-Readable)
+├── workflows_manifest.json            # 📋 全局机器可读元数据索引 (零硬编码调度主字典)
 ├── LICENSE                            # MIT 开源许可证
-├── workflows/                         # 17 套经过严格双轨打标的 JSON 工作流
+├── workflows_api/                     # ⚡ 17 套纯 API 执行图 JSON (可直接 POST 到 /prompt)
+│   └── 01 ~ 17 全部 17 套 API 格式工作流
+├── workflows/                         # 17 套 UI 可视化工程 JSON (含坐标与连线)
 │   ├── 01 ~ 17 全部 17 套工作流
 │   └── README.md                      # 工作流矩阵总览与节点映射速查
 ├── custom_nodes/                      # 配套自定义扩展
@@ -147,9 +160,10 @@ comfyui-agent-workflows/
 │   ├── MODEL_ZOO.md                   # 📦 所需 Checkpoint、LoRA、ControlNet 下载清单与放置路径
 │   └── API_SPEC.md                    # 🌐 ComfyUI REST API & WebSocket 协议规范
 └── scripts/
+    ├── comfy_agent_client.py          # 强化版 Agent 调度 SDK (含 --test 冒烟测试套件)
+    ├── ui_to_api_prompt.py            # 离线/在线 UI 工作流转 API 执行图转换器
     ├── setup_edition.ps1              # 专版一键部署与同步脚本 (Master Deployer)
     ├── download_models.ps1            # 核心模型断点续传一键下载器
-    ├── comfy_agent_client.py          # 开箱即用的大模型 Agent 调度 SDK (Python)
     ├── start_zluda_amd.ps1            # AMD 780M / ZLUDA Windows 静默无窗口启动脚本
     └── start_nvidia.bat               # NVIDIA CUDA 通用启动批处理
 ```
