@@ -36,3 +36,5 @@ Thumbs.db
 *.swo
 .vscode/
 .idea/
+
+*.zip
